@@ -2,7 +2,7 @@
   "id": "rotss-weather",
   "title": "Raiders of the Serpent Sea: Weather Tracker",
   "description": "Tracks Grimnir's weather using the optional Random Weather in Grimnir rules (Appendix F) and the Weather Tracker (Appendix B): daily rolls, Long Winter modifier, special events, forecasts and rituals.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "authors": [
     {
       "name": "Harry"
@@ -10,7 +10,7 @@
   ],
   "url": "https://github.com/hsergelstringer/rotss-weather-tracker",
   "manifest": "https://github.com/hsergelstringer/rotss-weather-tracker/releases/latest/download/module.json",
-  "download": "https://github.com/hsergelstringer/rotss-weather-tracker/releases/download/v0.1.0/module.zip",
+  "download": "https://github.com/hsergelstringer/rotss-weather-tracker/releases/download/v0.2.0/module.zip",
   "bugs": "https://github.com/hsergelstringer/rotss-weather-tracker/issues",
   "compatibility": {
     "minimum": "13",

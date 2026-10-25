@@ -15,13 +15,18 @@ function getState() {
     game.settings.get(MODULE_ID, "state") ?? {}, { inplace: false });
 }
 
+/** The rolled weather with any active temporary adjustments applied. */
+function currentWeather(state = getState()) {
+  return Rules.effectiveState(state, game.time.worldTime);
+}
+
 async function setState(state) {
   if (!game.user.isGM) {
     ui.notifications.warn("Only the GM can change the weather.");
     return;
   }
   await game.settings.set(MODULE_ID, "state", state);
-  if (game.settings.get(MODULE_ID, "sceneWeather")) await applySceneWeather(state);
+  if (game.settings.get(MODULE_ID, "sceneWeather")) await applySceneWeather(currentWeather(state));
 }
 
 async function applySceneWeather(state) {
@@ -55,6 +60,12 @@ function describeChanges(changes) {
     wind: describeChange(changes.wind, "increases", "decreases"),
     precipitation: describeChange(changes.precipitation, "increases", "decreases")
   };
+}
+
+function formatDuration(seconds) {
+  if (seconds % 3600 === 0) return seconds === 3600 ? "1 hour" : `${seconds / 3600} hours`;
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? "1 minute" : `${minutes} minutes`;
 }
 
 /* -------------------------------------------- */
@@ -102,8 +113,9 @@ function gmIds() {
 const Weather = {
   getState,
 
+  /** Summary of the weather right now, including temporary adjustments. */
   summary() {
-    return Rules.summary(getState());
+    return Rules.summary(currentWeather());
   },
 
   /** Roll the weather for the start of a new day (or apply the stored forecast). */
@@ -121,6 +133,8 @@ const Weather = {
     const next = Rules.applyChanges(state, changes);
     next.day = state.day + 1;
     next.forecast = null;
+    // A new day: hour-long effects like Hands of Change have long since worn off.
+    next.adjustments = [];
     next.history = [{ day: next.day, summary: Rules.summary(next), dice, bonus, forecast: !!state.forecast },
       ...state.history].slice(0, HISTORY_LENGTH);
     await setState(next);
@@ -181,10 +195,76 @@ const Weather = {
 
   async announce() {
     const state = getState();
+    const adjusted = Rules.activeAdjustments(state, game.time.worldTime).length > 0;
     await ChatMessage.create({
       speaker: { alias: "Grimnir Weather" },
-      content: weatherCardHTML(state, { title: `Day ${state.day}: current weather` })
+      content: weatherCardHTML(currentWeather(state),
+        { title: `Day ${state.day}: current weather${adjusted ? " (temporarily changed)" : ""}` })
     });
+  },
+
+  /**
+   * Layer a temporary change over the rolled weather.
+   * @param {object} options
+   * @param {string} options.label                What caused it, shown in the tracker and chat
+   * @param {object} options.changes              Steps per track, e.g. { temperature: -1 }
+   * @param {number|null} [options.duration]      Game-time seconds, or null to last until removed
+   * @param {string} [options.note]               Extra line for the chat message
+   */
+  async addAdjustment({ label, changes, duration = Rules.HANDS_OF_CHANGE_DURATION, note }) {
+    const state = getState();
+    const before = currentWeather(state);
+    const adjustment = {
+      id: foundry.utils.randomID(),
+      label: label || "Adjustment",
+      changes,
+      expires: duration ? game.time.worldTime + duration : null
+    };
+    const next = { ...state, adjustments: [...Rules.activeAdjustments(state, game.time.worldTime), adjustment] };
+    await setState(next);
+
+    const after = currentWeather(next);
+    const lasting = duration ? `for ${formatDuration(duration)}` : "until removed";
+    const unchanged = Rules.summary(before) === Rules.summary(after) ? " The weather can't go any further that way." : "";
+    await ChatMessage.create({
+      speaker: { alias: "Grimnir Weather" },
+      content: `
+        <div class="rotss-weather-card">
+          <h3>${Handlebars.escapeExpression(adjustment.label)}</h3>
+          <p>${Rules.describeAdjustment(changes)} ${lasting}.${unchanged}</p>
+          <p><strong>Now:</strong> ${Rules.summary(after)}</p>
+          ${note ? `<p class="effect">${note}</p>` : ""}
+        </div>`
+    });
+    return adjustment;
+  },
+
+  /** Way of the Wanderer: Hands of Change. `key` is one of Rules.HANDS_OF_CHANGE. */
+  async handsOfChange(key) {
+    const option = Rules.HANDS_OF_CHANGE.find(o => o.key === key);
+    if (!option) throw new Error(`Unknown Hands of Change option: ${key}`);
+    return this.addAdjustment({
+      label: `Hands of Change (${option.damage}): ${option.label}`,
+      changes: option.changes,
+      duration: Rules.HANDS_OF_CHANGE_DURATION,
+      note: `Path of Fate ${option.fate > 0 ? "+" : "−"}${Math.abs(option.fate)} (once per turn).`
+    });
+  },
+
+  async removeAdjustment(id) {
+    const state = getState();
+    await setState({ ...state, adjustments: state.adjustments.filter(a => a.id !== id) });
+  },
+
+  async clearAdjustments() {
+    await setState({ ...getState(), adjustments: [] });
+  },
+
+  /** Drop adjustments whose game time has run out. */
+  async pruneExpired() {
+    const state = getState();
+    const active = Rules.activeAdjustments(state, game.time.worldTime);
+    if (active.length !== state.adjustments.length) await setState({ ...state, adjustments: active });
   },
 
   async update(changes) {
@@ -225,6 +305,10 @@ class WeatherTracker extends HandlebarsApplicationMixin(ApplicationV2) {
       ritual: () => Weather.ritual(),
       announce: () => Weather.announce(),
       reset: WeatherTracker.#onReset,
+      handsOfChange: (event, target) => Weather.handsOfChange(target.dataset.key),
+      addAdjustment: WeatherTracker.#onAddAdjustment,
+      removeAdjustment: (event, target) => Weather.removeAdjustment(target.dataset.id),
+      clearAdjustments: () => Weather.clearAdjustments(),
       step: WeatherTracker.#onStep,
       setStep: WeatherTracker.#onSetStep
     }
@@ -236,17 +320,23 @@ class WeatherTracker extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _prepareContext() {
     const state = getState();
+    const now = game.time.worldTime;
+    const weather = Rules.effectiveState(state, now);
     const isGM = game.user.isGM;
-    const track = (key, steps, current, labelFor) => ({
+    const track = (key, steps, labelFor) => ({
       key,
       // Displayed like the printed tracker: the harshest step at the top.
-      steps: steps.map((step, index) => ({ index, label: labelFor(index), active: index === current })),
-      current
+      // "active" is the weather right now; "rolled" marks the day's roll when an adjustment moved it.
+      steps: steps.map((step, index) => ({
+        index,
+        label: labelFor(index),
+        active: index === weather[key],
+        rolled: index === state[key] && state[key] !== weather[key]
+      }))
     });
-    const temperature = track("temperature", Rules.TEMPERATURE, state.temperature, i => Rules.TEMPERATURE[i].label);
-    const wind = track("wind", Rules.WIND, state.wind, i => Rules.WIND[i].label);
-    const precipitation = track("precipitation", Rules.PRECIPITATION, state.precipitation,
-      i => Rules.precipitationLabel(state, i));
+    const temperature = track("temperature", Rules.TEMPERATURE, i => Rules.TEMPERATURE[i].label);
+    const wind = track("wind", Rules.WIND, i => Rules.WIND[i].label);
+    const precipitation = track("precipitation", Rules.PRECIPITATION, i => Rules.precipitationLabel(weather, i));
     wind.steps.reverse();
     precipitation.steps.reverse();
     temperature.title = "Temperature";
@@ -258,11 +348,21 @@ class WeatherTracker extends HandlebarsApplicationMixin(ApplicationV2) {
       state,
       tracks: [temperature, wind, precipitation],
       effects: [
-        { label: Rules.TEMPERATURE[state.temperature].label, text: Rules.TEMPERATURE[state.temperature].effect },
-        { label: Rules.WIND[state.wind].label, text: Rules.WIND[state.wind].effect },
-        { label: Rules.precipitationLabel(state), text: Rules.precipitationEffect(state) }
+        { label: Rules.TEMPERATURE[weather.temperature].label, text: Rules.TEMPERATURE[weather.temperature].effect },
+        { label: Rules.WIND[weather.wind].label, text: Rules.WIND[weather.wind].effect },
+        { label: Rules.precipitationLabel(weather), text: Rules.precipitationEffect(weather) }
       ],
-      events: Rules.activeEvents(state).map(key => Rules.EVENTS[key]),
+      events: Rules.activeEvents(weather).map(key => Rules.EVENTS[key]),
+      adjustments: Rules.activeAdjustments(state, now).map(a => ({
+        ...a,
+        description: Rules.describeAdjustment(a.changes),
+        remaining: a.expires == null ? "until removed" : `${formatDuration(a.expires - now)} left`
+      })),
+      rolledSummary: Rules.summary(state),
+      handsOfChange: Rules.HANDS_OF_CHANGE.map(o => ({
+        ...o,
+        tooltip: `${o.damage}: ${Rules.describeAdjustment(o.changes)} for 1 hour. Path of Fate ${o.fate > 0 ? "+" : "−"}1`
+      })),
       bonus: Rules.longWinterBonus(state),
       atSea: state.location === "sea",
       forecast: state.forecast ? { ...state.forecast, described: describeChanges(state.forecast.changes) } : null,
@@ -290,6 +390,15 @@ class WeatherTracker extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const { track, index } = target.dataset;
     Weather.update({ [track]: Number(index) });
+  }
+
+  static async #onAddAdjustment() {
+    const form = this.element.querySelector(".custom-adjustment");
+    const track = form.querySelector("[name=adjTrack]").value;
+    const steps = Number(form.querySelector("[name=adjSteps]").value);
+    const minutes = Number(form.querySelector("[name=adjDuration]").value);
+    const label = form.querySelector("[name=adjLabel]").value.trim() || "Weather change";
+    await Weather.addAdjustment({ label, changes: { [track]: steps }, duration: minutes > 0 ? minutes * 60 : null });
   }
 
   static async #onReset() {
@@ -341,4 +450,11 @@ Hooks.on("getSceneControlButtons", controls => {
     visible: true,
     onChange: () => Weather.open()
   };
+});
+
+Hooks.on("updateWorldTime", () => {
+  const app = WeatherTracker.instance;
+  if (app.rendered) app.render();
+  // One client tidies up expired adjustments.
+  if (game.user === game.users.activeGM) Weather.pruneExpired();
 });

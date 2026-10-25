@@ -63,6 +63,11 @@
   outline: 1px solid rgba(120, 180, 240, 0.8);
 }
 
+.rotss-weather-body .track li.rolled .step-label {
+  opacity: 0.85;
+  outline: 1px dashed rgba(120, 180, 240, 0.8);
+}
+
 .rotss-weather-body .track .nudge {
   display: flex;
   gap: 0.25rem;
@@ -160,4 +165,94 @@
 .rotss-weather-card .effect {
   font-size: var(--font-size-12);
   opacity: 0.85;
+}
+
+.rotss-weather-body .adjustments {
+  padding: 0.4rem 0.5rem;
+  border-left: 3px solid #d4a64a;
+  background: rgba(212, 166, 74, 0.12);
+}
+
+.rotss-weather-body .adjustments header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.rotss-weather-body .adjustments ul {
+  list-style: none;
+  margin: 0.25rem 0;
+  padding: 0;
+}
+
+.rotss-weather-body .adjustments li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rotss-weather-body .adjustments li .what {
+  flex: 1;
+}
+
+.rotss-weather-body .adjustments li button {
+  flex: 0 0 1.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  min-height: 0;
+  padding: 0;
+}
+
+.rotss-weather-body .adjustments .hint,
+.rotss-weather-body .temporary .caption {
+  font-size: var(--font-size-12);
+  opacity: 0.8;
+}
+
+.rotss-weather-body .adjustments p {
+  margin: 0;
+}
+
+.rotss-weather-body .adjustments a {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rotss-weather-body .temporary summary {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.rotss-weather-body .hands-of-change {
+  margin: 0.4rem 0;
+}
+
+.rotss-weather-body .hoc-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.rotss-weather-body .hoc-buttons button {
+  white-space: nowrap;
+  font-size: var(--font-size-12);
+}
+
+.rotss-weather-body .custom-adjustment {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.rotss-weather-body .custom-adjustment input[type="text"] {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.rotss-weather-body .custom-adjustment select,
+.rotss-weather-body .custom-adjustment button {
+  flex: 0 0 auto;
+  width: auto;
 }

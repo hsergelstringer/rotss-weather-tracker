@@ -80,8 +80,27 @@ export const DEFAULT_STATE = {
   longWinter: true,
   day: 1,
   forecast: null,
-  history: []
+  history: [],
+  // Temporary changes layered over the rolled weather: { id, label, changes, expires }.
+  // `expires` is in game-time seconds (game.time.worldTime), or null until removed.
+  adjustments: []
 };
+
+/**
+ * Way of the Wanderer monk, Hands of Change (Player's Guide p. 56): an unarmed
+ * strike's damage type changes the weather within 1 mile for 1 hour, and shifts
+ * the monk's Path of Fate score.
+ */
+export const HANDS_OF_CHANGE_DURATION = 3600;
+export const HANDS_OF_CHANGE = [
+  { key: "warmer", damage: "Acid or Fire", label: "Warmer", changes: { temperature: 1 }, fate: -1 },
+  { key: "colder", damage: "Cold or Poison", label: "Colder", changes: { temperature: -1 }, fate: 1 },
+  { key: "moreSnow", damage: "Cold or Poison", label: "More snow", changes: { precipitation: 1 }, fate: 1 },
+  { key: "moreRain", damage: "Lightning or Thunder", label: "More rain", changes: { precipitation: 1 }, fate: -1 },
+  { key: "moreWind", damage: "Lightning or Thunder", label: "More wind", changes: { wind: 1 }, fate: -1 },
+  { key: "lessPrecipitation", damage: "Radiant", label: "Less rain/snow", changes: { precipitation: -1 }, fate: 1 },
+  { key: "lessWind", damage: "Radiant", label: "Less wind", changes: { wind: -1 }, fate: 1 }
+];
 
 /** Temperatures at or below this fall as snow. */
 const SNOW_THRESHOLD = T.cool;
@@ -140,6 +159,32 @@ export function applyChanges(state, changes) {
     wind: clamp(state.wind + (changes.wind ?? 0), WIND.length - 1),
     precipitation: clamp(state.precipitation + (changes.precipitation ?? 0), PRECIPITATION.length - 1)
   };
+}
+
+/** Adjustments still in force at game time `now` (all of them when `now` is unknown). */
+export function activeAdjustments(state, now) {
+  return (state.adjustments ?? []).filter(a => a.expires == null || now == null || a.expires > now);
+}
+
+/**
+ * The weather as it is right now: the rolled weather plus every active
+ * temporary adjustment, clamped to each track.
+ */
+export function effectiveState(state, now) {
+  const total = { temperature: 0, wind: 0, precipitation: 0 };
+  for (const { changes } of activeAdjustments(state, now)) {
+    for (const key of Object.keys(total)) total[key] += changes[key] ?? 0;
+  }
+  return applyChanges(state, total);
+}
+
+/** "Temperature -1, Wind +1" */
+export function describeAdjustment(changes) {
+  const names = { temperature: "Temperature", wind: "Wind", precipitation: "Snow & Rain" };
+  return Object.entries(changes)
+    .filter(([, steps]) => steps)
+    .map(([key, steps]) => `${names[key]} ${steps > 0 ? "+" : "−"}${Math.abs(steps)}`)
+    .join(", ");
 }
 
 /** One step each towards extreme cold, strong wind and heavy snow (the Frostheart on Turnfjall). */

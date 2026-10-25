@@ -10,7 +10,11 @@ A Foundry VTT (v13–v14) module for the optional **Random Weather in Grimnir** 
 - **Predict tomorrow** (after a successful DC 15 Intelligence (Nature) check) rolls the next day now and whispers the result to the GM. The next *Roll new day* uses the forecast.
 - **Ritual d4** rolls for *Ritual: Influencing the Weather*. Apply the result with the +/− buttons.
 - **Frostheart** moves each column one step towards extreme cold, heavy snow and strong wind (Turnfjall).
-- The +/− buttons, or a click on a step, change the weather directly. Use them for *control weather*, Way of the Wanderer and similar effects.
+- The +/− buttons, or a click on a step, change the day's rolled weather directly.
+- **Temporary changes** sit on top of the rolled weather and wear off by themselves:
+  - **Hands of Change** buttons for the Way of the Wanderer monk (Player's Guide p. 56): Warmer, Colder, More snow, More rain, More wind, Less rain/snow, Less wind. Each lasts 1 hour and posts the Path of Fate change to chat.
+  - **Custom changes** (e.g. *control weather*): pick a track, ±1 or ±2, and 10 minutes, 1 hour, 8 hours or until removed.
+  - Changes stack, count down in **game time** (advance the clock in Foundry or remove them by hand), and all end when you roll a new day. The tracker marks the rolled step with a dashed outline while it's being overridden.
 - Players can open the tracker read-only and see changes live.
 - Optional setting: apply a matching core weather effect (rain, snow, blizzard, storm) to the active scene.
 
@@ -19,7 +23,9 @@ Open the tracker from the **Token controls** toolbar (cloud icon), or from a mac
 ```js
 game.modules.get("rotss-weather").api.open();
 await game.modules.get("rotss-weather").api.rollDay();
-game.modules.get("rotss-weather").api.summary(); // "Cold, Strong Wind, Light Snow"
+game.modules.get("rotss-weather").api.summary(); // "Cold, Strong Wind, Light Snow", including temporary changes
+await game.modules.get("rotss-weather").api.handsOfChange("colder");
+await game.modules.get("rotss-weather").api.addAdjustment({ label: "Control Weather", changes: { wind: 2 }, duration: 8 * 3600 });
 ```
 
 ## Rules interpretations

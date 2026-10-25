@@ -13,7 +13,7 @@
       <h4>{{title}}</h4>
       <ol>
         {{#each steps}}
-        <li class="{{#if active}}active{{/if}}">
+        <li class="{{#if active}}active{{/if}} {{#if rolled}}rolled{{/if}}" {{#if rolled}}data-tooltip="Today's roll, before temporary changes"{{/if}}>
           {{#if @root.isGM}}
           <button type="button" class="step-label" data-action="setStep" data-track="{{../key}}" data-index="{{index}}">{{label}}</button>
           {{else}}
@@ -31,6 +31,27 @@
     </div>
     {{/each}}
   </section>
+
+  {{#if adjustments.length}}
+  <section class="adjustments">
+    <header>
+      <strong><i class="fa-solid fa-hourglass-half"></i> Temporary changes</strong>
+      <span class="hint">Rolled: {{rolledSummary}}</span>
+    </header>
+    <ul>
+      {{#each adjustments}}
+      <li>
+        <span class="what">{{label}} <span class="hint">{{description}} · {{remaining}}</span></span>
+        {{#if @root.isGM}}
+        <button type="button" data-action="removeAdjustment" data-id="{{id}}" data-tooltip="Remove"><i class="fa-solid fa-xmark"></i></button>
+        {{/if}}
+      </li>
+      {{/each}}
+    </ul>
+    {{#if isGM}}<p class="hint">Durations count game time and all changes end when you roll a new day.
+      <a data-action="clearAdjustments">Clear all</a></p>{{/if}}
+  </section>
+  {{/if}}
 
   {{#if events.length}}
   <section class="events">
@@ -82,6 +103,41 @@
       <button type="button" data-action="reset" data-tooltip="Back to the first day at sea"><i class="fa-solid fa-rotate-left"></i></button>
     </div>
   </section>
+  {{/if}}
+
+  {{#if isGM}}
+  <details class="temporary" open>
+    <summary>Temporary changes</summary>
+    <div class="hands-of-change">
+      <span class="caption" data-tooltip="Way of the Wanderer: 1 mile, 1 hour, once per turn moves Path of Fate">Hands of Change</span>
+      <div class="hoc-buttons">
+        {{#each handsOfChange}}
+        <button type="button" data-action="handsOfChange" data-key="{{key}}" data-tooltip="{{tooltip}}">{{label}}</button>
+        {{/each}}
+      </div>
+    </div>
+    <div class="custom-adjustment">
+      <input type="text" name="adjLabel" placeholder="Cause, e.g. Control Weather">
+      <select name="adjTrack">
+        <option value="temperature">Temperature</option>
+        <option value="wind">Wind</option>
+        <option value="precipitation">Snow &amp; Rain</option>
+      </select>
+      <select name="adjSteps">
+        <option value="-2">−2</option>
+        <option value="-1">−1</option>
+        <option value="1" selected>+1</option>
+        <option value="2">+2</option>
+      </select>
+      <select name="adjDuration">
+        <option value="10">10 min</option>
+        <option value="60" selected>1 hour</option>
+        <option value="480">8 hours</option>
+        <option value="0">Until removed</option>
+      </select>
+      <button type="button" data-action="addAdjustment"><i class="fa-solid fa-plus"></i> Add</button>
+    </div>
+  </details>
   {{/if}}
 
   {{#if history.length}}
