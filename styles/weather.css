@@ -1,0 +1,163 @@
+.rotss-weather .window-content {
+  padding: 0.75rem;
+}
+
+.rotss-weather-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rotss-weather-body .status {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: var(--font-size-14);
+}
+
+.rotss-weather-body .status .day {
+  font-weight: bold;
+}
+
+.rotss-weather-body .status .winter {
+  margin-left: auto;
+  color: #7fb8e0;
+}
+
+.rotss-weather-body .tracks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.rotss-weather-body .track h4 {
+  margin: 0 0 0.25rem;
+  text-align: center;
+  border-bottom: 1px solid var(--color-border, #7a7971);
+}
+
+.rotss-weather-body .track ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rotss-weather-body .track li .step-label {
+  display: block;
+  width: 100%;
+  padding: 0.2rem 0.4rem;
+  text-align: center;
+  border-radius: 3px;
+  opacity: 0.55;
+  line-height: 1.4;
+  min-height: 0;
+}
+
+.rotss-weather-body .track li.active .step-label {
+  opacity: 1;
+  font-weight: bold;
+  background: rgba(70, 130, 200, 0.35);
+  outline: 1px solid rgba(120, 180, 240, 0.8);
+}
+
+.rotss-weather-body .track .nudge {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.rotss-weather-body .events .event,
+.rotss-weather-card .event {
+  padding: 0.4rem 0.5rem;
+  margin-bottom: 0.25rem;
+  border-left: 3px solid #c9593f;
+  background: rgba(201, 89, 63, 0.15);
+}
+
+.rotss-weather-body .effects p {
+  margin: 0 0 0.25rem;
+  font-size: var(--font-size-12);
+}
+
+.rotss-weather-body .forecast {
+  padding: 0.4rem 0.5rem;
+  border-left: 3px solid #7fb8e0;
+  background: rgba(127, 184, 224, 0.12);
+}
+
+.rotss-weather-body .forecast .hint {
+  font-size: var(--font-size-12);
+  opacity: 0.8;
+}
+
+.rotss-weather-body .controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rotss-weather-body .settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.rotss-weather-body .settings-row label {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.rotss-weather-body .settings-row input[type="number"] {
+  width: 3.5rem;
+}
+
+.rotss-weather-body .button-row {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.rotss-weather-body .button-row button {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.rotss-weather-body .button-row button[data-action="reset"] {
+  flex: 0 0 2.5rem;
+}
+
+.rotss-weather-body .history ol {
+  margin: 0.25rem 0 0;
+  padding-left: 1rem;
+  font-size: var(--font-size-12);
+}
+
+.rotss-weather-card h3 {
+  margin: 0 0 0.25rem;
+}
+
+.rotss-weather-card ul {
+  list-style: none;
+  margin: 0 0 0.4rem;
+  padding: 0;
+}
+
+.rotss-weather-card li {
+  margin-bottom: 0.3rem;
+}
+
+.rotss-weather-card .dice {
+  float: right;
+  opacity: 0.7;
+  font-size: var(--font-size-11);
+}
+
+.rotss-weather-card .effect {
+  font-size: var(--font-size-12);
+  opacity: 0.85;
+}

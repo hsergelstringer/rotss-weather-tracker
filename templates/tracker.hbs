@@ -1,0 +1,97 @@
+<div class="rotss-weather-body">
+  <header class="status">
+    <span class="day">Day {{state.day}}</span>
+    <span class="where"><i class="fa-solid {{#if atSea}}fa-sailboat{{else}}fa-mountain{{/if}}"></i>
+      {{#if atSea}}At sea{{else}}On land{{/if}}</span>
+    {{#if state.longWinter}}<span class="winter" data-tooltip="Added to each weather die: half the chapter number">
+      <i class="fa-solid fa-snowflake"></i> Long Winter +{{bonus}}</span>{{/if}}
+  </header>
+
+  <section class="tracks">
+    {{#each tracks}}
+    <div class="track" data-track="{{key}}">
+      <h4>{{title}}</h4>
+      <ol>
+        {{#each steps}}
+        <li class="{{#if active}}active{{/if}}">
+          {{#if @root.isGM}}
+          <button type="button" class="step-label" data-action="setStep" data-track="{{../key}}" data-index="{{index}}">{{label}}</button>
+          {{else}}
+          <span class="step-label">{{label}}</span>
+          {{/if}}
+        </li>
+        {{/each}}
+      </ol>
+      {{#if @root.isGM}}
+      <div class="nudge">
+        <button type="button" data-action="step" data-track="{{key}}" data-steps="-1" data-tooltip="One step down"><i class="fa-solid fa-minus"></i></button>
+        <button type="button" data-action="step" data-track="{{key}}" data-steps="1" data-tooltip="One step up"><i class="fa-solid fa-plus"></i></button>
+      </div>
+      {{/if}}
+    </div>
+    {{/each}}
+  </section>
+
+  {{#if events.length}}
+  <section class="events">
+    {{#each events}}
+    <div class="event"><i class="{{icon}}"></i> <strong>{{label}}.</strong> {{effect}}</div>
+    {{/each}}
+  </section>
+  {{/if}}
+
+  <section class="effects">
+    {{#each effects}}
+    <p><strong>{{label}}.</strong> {{text}}</p>
+    {{/each}}
+  </section>
+
+  {{#if forecast}}
+  <section class="forecast">
+    <strong><i class="fa-solid fa-eye"></i> Forecast for tomorrow:</strong> {{forecast.summary}}
+    <div class="hint">Temperature {{forecast.described.temperature}}, wind {{forecast.described.wind}},
+      snow &amp; rain {{forecast.described.precipitation}}.</div>
+  </section>
+  {{/if}}
+
+  {{#if isGM}}
+  <section class="controls">
+    <div class="settings-row">
+      <label>Location
+        <select name="location">
+          <option value="sea" {{#if atSea}}selected{{/if}}>At sea</option>
+          <option value="land" {{#unless atSea}}selected{{/unless}}>On land</option>
+        </select>
+      </label>
+      <label>Chapter <input type="number" name="chapter" min="1" max="14" value="{{state.chapter}}"></label>
+      <label>Day <input type="number" name="day" min="1" value="{{state.day}}"></label>
+      <label class="checkbox"><input type="checkbox" name="longWinter" {{#if state.longWinter}}checked{{/if}}> Long Winter</label>
+    </div>
+    <div class="button-row">
+      <button type="button" data-action="rollDay"><i class="fa-solid fa-dice-d20"></i> {{#if forecast}}Next day (use forecast){{else}}Roll new day{{/if}}</button>
+      {{#if forecast}}
+      <button type="button" data-action="clearForecast"><i class="fa-solid fa-eye-slash"></i> Discard forecast</button>
+      {{else}}
+      <button type="button" data-action="predict" data-tooltip="After a successful DC 15 Intelligence (Nature) check"><i class="fa-solid fa-eye"></i> Predict tomorrow</button>
+      {{/if}}
+    </div>
+    <div class="button-row">
+      <button type="button" data-action="announce"><i class="fa-solid fa-bullhorn"></i> Post to chat</button>
+      <button type="button" data-action="ritual" data-tooltip="Ritual: Influencing the Weather"><i class="fa-solid fa-droplet"></i> Ritual d4</button>
+      <button type="button" data-action="frostheart" data-tooltip="Turnfjall: each hour, one step towards extreme cold, heavy snow and strong wind"><i class="fa-solid fa-icicles"></i> Frostheart</button>
+      <button type="button" data-action="reset" data-tooltip="Back to the first day at sea"><i class="fa-solid fa-rotate-left"></i></button>
+    </div>
+  </section>
+  {{/if}}
+
+  {{#if history.length}}
+  <details class="history">
+    <summary>Recent days</summary>
+    <ol>
+      {{#each history}}
+      <li><strong>Day {{day}}:</strong> {{summary}}{{#if forecast}} <em>(forecast)</em>{{/if}}</li>
+      {{/each}}
+    </ol>
+  </details>
+  {{/if}}
+</div>
