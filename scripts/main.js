@@ -1,4 +1,5 @@
 import * as Rules from "./rules.js";
+import { renderHud } from "./hud.js";
 
 const MODULE_ID = "rotss-weather";
 const TEMPLATE = `modules/${MODULE_ID}/templates/tracker.hbs`;
@@ -38,6 +39,19 @@ async function applySceneWeather(state) {
 }
 
 /* -------------------------------------------- */
+/*  Canvas weather bar                          */
+/* -------------------------------------------- */
+
+function refreshHud() {
+  renderHud(getState(), {
+    visible: game.settings.get(MODULE_ID, "hudShow") && (game.user.isGM || game.settings.get(MODULE_ID, "hudPlayers")),
+    expanded: game.settings.get(MODULE_ID, "hudExpanded"),
+    onToggle: () => game.settings.set(MODULE_ID, "hudExpanded", !game.settings.get(MODULE_ID, "hudExpanded")),
+    onOpen: () => Weather.open()
+  });
+}
+
+/* -------------------------------------------- */
 /*  Dice                                        */
 /* -------------------------------------------- */
 
@@ -60,12 +74,6 @@ function describeChanges(changes) {
     wind: describeChange(changes.wind, "increases", "decreases"),
     precipitation: describeChange(changes.precipitation, "increases", "decreases")
   };
-}
-
-function formatDuration(seconds) {
-  if (seconds % 3600 === 0) return seconds === 3600 ? "1 hour" : `${seconds / 3600} hours`;
-  const minutes = Math.ceil(seconds / 60);
-  return minutes === 1 ? "1 minute" : `${minutes} minutes`;
 }
 
 /* -------------------------------------------- */
@@ -224,7 +232,7 @@ const Weather = {
     await setState(next);
 
     const after = currentWeather(next);
-    const lasting = duration ? `for ${formatDuration(duration)}` : "until removed";
+    const lasting = duration ? `for ${Rules.formatDuration(duration)}` : "until removed";
     const unchanged = Rules.summary(before) === Rules.summary(after) ? " The weather can't go any further that way." : "";
     await ChatMessage.create({
       speaker: { alias: "Grimnir Weather" },
@@ -356,7 +364,7 @@ class WeatherTracker extends HandlebarsApplicationMixin(ApplicationV2) {
       adjustments: Rules.activeAdjustments(state, now).map(a => ({
         ...a,
         description: Rules.describeAdjustment(a.changes),
-        remaining: a.expires == null ? "until removed" : `${formatDuration(a.expires - now)} left`
+        remaining: a.expires == null ? "until removed" : `${Rules.formatDuration(a.expires - now)} left`
       })),
       rolledSummary: Rules.summary(state),
       handsOfChange: Rules.HANDS_OF_CHANGE.map(o => ({
@@ -423,7 +431,36 @@ Hooks.once("init", () => {
     onChange: () => {
       const app = WeatherTracker.instance;
       if (app.rendered) app.render();
+      refreshHud();
     }
+  });
+
+  game.settings.register(MODULE_ID, "hudPlayers", {
+    name: "Show the weather bar to players",
+    hint: "A read-only weather bar at the top of the canvas. Turn off when the party is somewhere the weather doesn't apply.",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => refreshHud()
+  });
+
+  game.settings.register(MODULE_ID, "hudShow", {
+    name: "Show the weather bar on my screen",
+    hint: "Hide the canvas weather bar for yourself only.",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => refreshHud()
+  });
+
+  game.settings.register(MODULE_ID, "hudExpanded", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: () => refreshHud()
   });
 
   game.settings.register(MODULE_ID, "sceneWeather", {
@@ -452,9 +489,12 @@ Hooks.on("getSceneControlButtons", controls => {
   };
 });
 
+Hooks.once("ready", () => refreshHud());
+
 Hooks.on("updateWorldTime", () => {
   const app = WeatherTracker.instance;
   if (app.rendered) app.render();
+  refreshHud();
   // One client tidies up expired adjustments.
   if (game.user === game.users.activeGM) Weather.pruneExpired();
 });

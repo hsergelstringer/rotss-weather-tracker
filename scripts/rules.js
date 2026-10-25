@@ -178,6 +178,13 @@ export function effectiveState(state, now) {
   return applyChanges(state, total);
 }
 
+/** 3600 -> "1 hour", 900 -> "15 minutes" */
+export function formatDuration(seconds) {
+  if (seconds % 3600 === 0) return seconds === 3600 ? "1 hour" : `${seconds / 3600} hours`;
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? "1 minute" : `${minutes} minutes`;
+}
+
 /** "Temperature -1, Wind +1" */
 export function describeAdjustment(changes) {
   const names = { temperature: "Temperature", wind: "Wind", precipitation: "Snow & Rain" };

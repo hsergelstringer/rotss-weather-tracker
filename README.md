@@ -15,7 +15,7 @@ A Foundry VTT (v13–v14) module for the optional **Random Weather in Grimnir** 
   - **Hands of Change** buttons for the Way of the Wanderer monk (Player's Guide p. 56): Warmer, Colder, More snow, More rain, More wind, Less rain/snow, Less wind. Each lasts 1 hour and posts the Path of Fate change to chat.
   - **Custom changes** (e.g. *control weather*): pick a track, ±1 or ±2, and 10 minutes, 1 hour, 8 hours or until removed.
   - Changes stack, count down in **game time** (advance the clock in Foundry or remove them by hand), and all end when you roll a new day. The tracker marks the rolled step with a dashed outline while it's being overridden.
-- Players can open the tracker read-only and see changes live.
+- A **weather bar** at the top of the canvas shows everyone the current weather: day, temperature, wind, snow & rain, any special event, and an hourglass when a temporary change is active. Hover for effects, click to expand them, or use the book icon to open the tracker (read-only for players). The GM can hide it from players in the module settings (e.g. in the underworld), and anyone can hide it for themselves.
 - Optional setting: apply a matching core weather effect (rain, snow, blizzard, storm) to the active scene.
 
 Open the tracker from the **Token controls** toolbar (cloud icon), or from a macro:
